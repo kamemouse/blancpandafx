@@ -110,12 +110,12 @@ public class FXChart {
 		}
 	}
 
-	/*
-	 * period = CandleStick.M1 currency_pair = CandleStick.USDJPY max = 60
+	/**
+	 * period = CandleStick.M1 currency_pair = CandleStick.USDJPY itemmax = 60
 	 */
-	public FXChart(int period, int currency_pair, int max) {
+	public FXChart(int period, int currency_pair, int itemmax) {
 		candle = new OHLCSeries("s1");
-		candle.setMaximumItemCount(max);
+		candle.setMaximumItemCount(itemmax);
 		cs = new CandleStick(currency_pair, period);
 		this.period = period;
 		this.currency_pair = currency_pair;
@@ -222,6 +222,7 @@ public class FXChart {
 		shell.setLayout(layout);
 		shell.setText("リアルタイム為替チャート");
 		
+		// ツールバー
 		Composite toolbar = new Composite(shell, SWT.NONE);
 		GridLayout lo_toolbar = new GridLayout();
 		lo_toolbar.numColumns = 2;
@@ -229,6 +230,7 @@ public class FXChart {
 		GridData ld_toolbar = new GridData(GridData.FILL_HORIZONTAL);
 		toolbar.setLayoutData(ld_toolbar);
 		
+		// FXチャート図描画オブジェクト
 		FXChart fxchart = new FXChart(CandleStick.M5, CandleStick.USDJPY, 60);
 		JFreeChart chart = fxchart.createChart();
 
@@ -262,6 +264,7 @@ public class FXChart {
 		cmb_period.add("M30");
 		cmb_period.select(CandleStick.M5);
 
+		// チャート格納箱作成
 		chartComposite = new ChartComposite(shell, SWT.NONE, chart, true);
 		chartComposite.setDisplayToolTips(true);
 		chartComposite.setHorizontalAxisTrace(false);
