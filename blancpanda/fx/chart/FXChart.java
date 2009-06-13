@@ -23,14 +23,19 @@ import org.jfree.chart.axis.DateAxis;
 import org.jfree.chart.axis.NumberAxis;
 import org.jfree.chart.plot.XYPlot;
 import org.jfree.chart.renderer.xy.CandlestickRenderer;
+import org.jfree.chart.renderer.xy.XYLineAndShapeRenderer;
+import org.jfree.data.time.Hour;
 import org.jfree.data.time.Minute;
 import org.jfree.data.time.RegularTimePeriod;
+import org.jfree.data.time.TimeSeries;
+import org.jfree.data.time.TimeSeriesCollection;
 import org.jfree.data.time.ohlc.OHLCSeries;
 import org.jfree.data.time.ohlc.OHLCSeriesCollection;
 import org.jfree.experimental.chart.swt.ChartComposite;
 
 import blancpanda.fx.CandleStick;
 import blancpanda.fx.CandleStickDao;
+import blancpanda.fx.timeperiod.Hour2;
 import blancpanda.fx.timeperiod.Minute30;
 import blancpanda.fx.timeperiod.Minute5;
 
@@ -40,6 +45,7 @@ public class FXChart {
 	private static ChartComposite chartComposite;
 
 	private OHLCSeries candle;
+	private TimeSeries ma;
 	private CandleStick cs;
 	private RegularTimePeriod pre_period;
 	private int period;
@@ -83,6 +89,7 @@ public class FXChart {
 			}
 		}
 	}
+	
 	class DataGenerator extends Timer implements ActionListener {
 		/**
 		 * 
@@ -95,27 +102,24 @@ public class FXChart {
 		}
 
 		public void actionPerformed(ActionEvent actionevent) {
-			// [SILENT] for SWT UI thread issue, use Display.asyncExec()
 			display.asyncExec(new Runnable() {
 				public void run() {
 					updateCandleStick();
 
-					// [SILENT] for chart redraw, use
-					// ChartComposite.forceRedraw();
-					// if not use this, then chart will not redraw.
-					// I don't know why.
 					chartComposite.forceRedraw();
 				}
 			});
 		}
 	}
 
-	/**
-	 * period = CandleStick.M1 currency_pair = CandleStick.USDJPY itemmax = 60
+	/*
+	 * period = CandleStick.M5 currency_pair = CandleStick.USDJPY max = 60
 	 */
-	public FXChart(int period, int currency_pair, int itemmax) {
+	public FXChart(int period, int currency_pair, int max) {
 		candle = new OHLCSeries("s1");
-		candle.setMaximumItemCount(itemmax);
+		candle.setMaximumItemCount(max);
+		ma = new TimeSeries("s2");
+		ma.setMaximumItemCount(max);
 		cs = new CandleStick(currency_pair, period);
 		this.period = period;
 		this.currency_pair = currency_pair;
@@ -135,6 +139,12 @@ public class FXChart {
 		case CandleStick.M30:
 			ret = new Minute30(date);
 			break;
+		case CandleStick.H1:
+			ret = new Hour(date);
+			break;
+		case CandleStick.H2:
+			ret = new Hour2(date);
+			break;
 		default:
 			System.out.println("ピリオドが不正です。");
 			break;
@@ -143,41 +153,57 @@ public class FXChart {
 	}
 
 	public JFreeChart createChart() {
-		loadCandleStick();
-
-		OHLCSeriesCollection dataset = new OHLCSeriesCollection();
-		dataset.addSeries(candle);
-
+		XYPlot plot = new XYPlot();
+		
 		DateAxis domain = new DateAxis(""); // Time
 		NumberAxis range = new NumberAxis(""); // Price
 		// 0を含まずに自動調整
 		range.setAutoRangeIncludesZero(false);
-
+		
+		// ロウソク足
+		loadCandleStick();
+		OHLCSeriesCollection osc = new OHLCSeriesCollection();
+		osc.addSeries(candle);
+		plot.setDataset(0, osc);
 		// ローソク足の色を変える
-		CandlestickRenderer renderer = new CandlestickRenderer();
+		CandlestickRenderer cr = new CandlestickRenderer(CandlestickRenderer.WIDTHMETHOD_INTERVALDATA);
 		// 陽線を白に
-		renderer.setUpPaint(Color.WHITE);
+		cr.setUpPaint(Color.WHITE);
 		// 陰線を青に
-		renderer.setDownPaint(Color.BLACK);
+		cr.setDownPaint(Color.BLACK);
 		// ローソクの枠を黒、1ピクセルで描画
-		renderer.setUseOutlinePaint(true);
-		renderer.setBaseOutlinePaint(Color.BLACK);
-		renderer.setBaseOutlineStroke(new BasicStroke(1));
+		cr.setUseOutlinePaint(true);
+		cr.setBaseOutlinePaint(Color.BLACK);
+		cr.setBaseOutlineStroke(new BasicStroke(1));
+		plot.setRenderer(0, cr);
+		plot.setDomainAxis(0, domain);
+		plot.setRangeAxis(0, range);
+		plot.mapDatasetToDomainAxis(0, 0);
+		plot.mapDatasetToRangeAxis(0, 0);
 
-		XYPlot plot = new XYPlot(dataset, domain, range, renderer);
+		// テクニカル指標
+		TimeSeriesCollection tsc = new TimeSeriesCollection();
+		tsc.addSeries(ma);
+		plot.setDataset(1, tsc);
+		XYLineAndShapeRenderer xyr = new XYLineAndShapeRenderer();
+		plot.setRenderer(1, xyr);
+		plot.mapDatasetToDomainAxis(1, 0);
+		plot.mapDatasetToRangeAxis(1, 0);
+				
 		JFreeChart jfreechart = new JFreeChart(null, null, plot, false);
+		
 		return jfreechart;
 	}
 
 	private void loadCandleStick() {
-/*
 		CandleStickDao csDao = new CandleStickDao();
 		List<CandleStick> list = csDao.getRecentList(period);
 		int serice = list.size();
+		RegularTimePeriod prd = null;
 		for (int i = serice - 1; i >= 0; i--) { // 時間の降順で取得してくる
 			cs = list.get(i);
 			// DBに重複データができてしまっている可能性がある
-			RegularTimePeriod prd = getRegularTimePeriod(cs.getDate());
+			prd = getRegularTimePeriod(cs.getDate());
 			int index = candle.indexOf(prd);
 //			System.out.println("index:" + index);
 			if (index >= 0) {
@@ -186,8 +212,12 @@ public class FXChart {
 			candle.add(prd, cs.getBid_open(), cs.getBid_high(),
 					cs.getBid_low(), cs.getBid_close());
 		}
-*/
-	}
+/*		for (int i = 0; i < candle.getItemCount(); i++) {
+			System.out.println(i);
+			// maに適当なデータを追加
+			ma.addOrUpdate(candle.getPeriod(i), 100);
+		}
+*/	}
 
 	@SuppressWarnings("unchecked")
 	private void updateCandleStick() {
@@ -196,6 +226,7 @@ public class FXChart {
 		// なぜか取得日時が逆戻りするので、戻った場合には何もしない。
 		RegularTimePeriod prd = getRegularTimePeriod(date);
 		if (prd.compareTo(pre_period) >= 0) {
+			ma.addOrUpdate(prd, (cs.getBid_high() + cs.getBid_low()) / 2);
 			int index = candle.indexOf(prd);
 //			System.out.println("index:" + index);
 			if (index >= 0) {
@@ -222,7 +253,6 @@ public class FXChart {
 		shell.setLayout(layout);
 		shell.setText("リアルタイム為替チャート");
 		
-		// ツールバー
 		Composite toolbar = new Composite(shell, SWT.NONE);
 		GridLayout lo_toolbar = new GridLayout();
 		lo_toolbar.numColumns = 2;
@@ -230,7 +260,6 @@ public class FXChart {
 		GridData ld_toolbar = new GridData(GridData.FILL_HORIZONTAL);
 		toolbar.setLayoutData(ld_toolbar);
 		
-		// FXチャート図描画オブジェクト
 		FXChart fxchart = new FXChart(CandleStick.M5, CandleStick.USDJPY, 60);
 		JFreeChart chart = fxchart.createChart();
 
@@ -254,7 +283,7 @@ public class FXChart {
 		cmb_currency_pair.add("EUR/USD");
 		cmb_currency_pair.add("AUD/USD");
 		cmb_currency_pair.select(CandleStick.USDJPY);
-//		cmb_currency_pair.setEnabled(false);	// とりあえず、米ドル円のみ
+		cmb_currency_pair.setEnabled(false);	// とりあえず、米ドル円のみ
 
 		// ピリオド選択コンボの追加
 		cmb_period = new Combo(toolbar,SWT.DROP_DOWN|SWT.BORDER|SWT.READ_ONLY);
@@ -262,9 +291,10 @@ public class FXChart {
 		cmb_period.add("M1");
 		cmb_period.add("M5");
 		cmb_period.add("M30");
+		cmb_period.add("H1");
+		cmb_period.add("H2");
 		cmb_period.select(CandleStick.M5);
 
-		// チャート格納箱作成
 		chartComposite = new ChartComposite(shell, SWT.NONE, chart, true);
 		chartComposite.setDisplayToolTips(true);
 		chartComposite.setHorizontalAxisTrace(false);
