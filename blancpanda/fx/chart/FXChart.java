@@ -41,6 +41,7 @@ import blancpanda.fx.timeperiod.Minute5;
 
 public class FXChart {
 
+	private static boolean db = false;
 	private static Display display;
 	private static ChartComposite chartComposite;
 
@@ -81,8 +82,11 @@ public class FXChart {
 				cs = new CandleStick(currency_pair, period);
 				// ロウソク足を全部消す
 				candle.clear();
-				// DBから読み込み直す
-				loadCandleStick();
+				ma.clear();
+				if(db){
+					// DBから読み込み直す
+					loadCandleStick();
+				}
 				// チャートの書き直し
 				chartComposite.forceRedraw();
 				changed = false;
@@ -161,12 +165,14 @@ public class FXChart {
 		range.setAutoRangeIncludesZero(false);
 		
 		// ロウソク足
-		loadCandleStick();
+		if(db){
+			loadCandleStick();
+		}
 		OHLCSeriesCollection osc = new OHLCSeriesCollection();
 		osc.addSeries(candle);
 		plot.setDataset(0, osc);
 		// ローソク足の色を変える
-		CandlestickRenderer cr = new CandlestickRenderer(CandlestickRenderer.WIDTHMETHOD_INTERVALDATA);
+		CandlestickRenderer cr = new CandlestickRenderer(CandlestickRenderer.WIDTHMETHOD_AVERAGE);
 		// 陽線を白に
 		cr.setUpPaint(Color.WHITE);
 		// 陰線を青に
