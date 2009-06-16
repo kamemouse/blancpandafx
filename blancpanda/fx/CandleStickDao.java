@@ -21,7 +21,7 @@ public class CandleStickDao extends AbstractGenericDao<CandleStick, String> {
 
         //条件
         query.setParameter("period_cd", period, Hibernate.INTEGER);
-        query.setMaxResults(60);
+        query.setMaxResults(150);
 
         //クエリ発行
         return query.list();

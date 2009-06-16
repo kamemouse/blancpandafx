@@ -74,7 +74,7 @@ public class CandleStick implements Serializable {
 	}
 
 	public CandleStick(){
-		this(CandleStick.USDJPY, CandleStick.M1);
+		this(CandleStick.USDJPY, CandleStick.M5);
 	}
 
 	/**
