@@ -7,6 +7,7 @@ import java.awt.event.ActionListener;
 import java.util.Date;
 import java.util.List;
 
+import javax.swing.JOptionPane;
 import javax.swing.Timer;
 
 import org.eclipse.swt.SWT;
@@ -17,6 +18,7 @@ import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Combo;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Display;
+import org.eclipse.swt.widgets.MessageBox;
 import org.eclipse.swt.widgets.Shell;
 import org.jfree.chart.JFreeChart;
 import org.jfree.chart.axis.DateAxis;
@@ -41,6 +43,7 @@ import blancpanda.fx.timeperiod.Minute5;
 
 public class FXChart {
 
+	private static boolean db = true;
 	private static Display display;
 	private static ChartComposite chartComposite;
 
@@ -54,7 +57,7 @@ public class FXChart {
 	private static Combo cmb_currency_pair;
 
 	class ChartChanger implements SelectionListener {
-		
+
 		public void widgetDefaultSelected(SelectionEvent selectionevent) {
 			updateChart();
 		}
@@ -62,7 +65,7 @@ public class FXChart {
 		public void widgetSelected(SelectionEvent selectionevent) {
 			updateChart();
 		}
-		
+
 		private void updateChart() {
 			boolean changed = false;
 			if(period != cmb_period.getSelectionIndex()){
@@ -81,18 +84,21 @@ public class FXChart {
 				cs = new CandleStick(currency_pair, period);
 				// ロウソク足を全部消す
 				candle.clear();
-				// DBから読み込み直す
-				loadCandleStick();
+				ma.clear();
+				if(db){
+					// DBから読み込み直す
+					loadCandleStick();
+				}
 				// チャートの書き直し
 				chartComposite.forceRedraw();
 				changed = false;
 			}
 		}
 	}
-	
+
 	class DataGenerator extends Timer implements ActionListener {
 		/**
-		 * 
+		 *
 		 */
 		private static final long serialVersionUID = 200906080L;
 
@@ -154,19 +160,21 @@ public class FXChart {
 
 	public JFreeChart createChart() {
 		XYPlot plot = new XYPlot();
-		
+
 		DateAxis domain = new DateAxis(""); // Time
 		NumberAxis range = new NumberAxis(""); // Price
 		// 0を含まずに自動調整
 		range.setAutoRangeIncludesZero(false);
-		
+
 		// ロウソク足
-		loadCandleStick();
+		if(db){
+			loadCandleStick();
+		}
 		OHLCSeriesCollection osc = new OHLCSeriesCollection();
 		osc.addSeries(candle);
 		plot.setDataset(0, osc);
 		// ローソク足の色を変える
-		CandlestickRenderer cr = new CandlestickRenderer(CandlestickRenderer.WIDTHMETHOD_INTERVALDATA);
+		CandlestickRenderer cr = new CandlestickRenderer(CandlestickRenderer.WIDTHMETHOD_AVERAGE);
 		// 陽線を白に
 		cr.setUpPaint(Color.WHITE);
 		// 陰線を青に
@@ -189,35 +197,41 @@ public class FXChart {
 		plot.setRenderer(1, xyr);
 		plot.mapDatasetToDomainAxis(1, 0);
 		plot.mapDatasetToRangeAxis(1, 0);
-				
+
 		JFreeChart jfreechart = new JFreeChart(null, null, plot, false);
-		
+
 		return jfreechart;
 	}
 
 	private void loadCandleStick() {
-		CandleStickDao csDao = new CandleStickDao();
-		List<CandleStick> list = csDao.getRecentList(period);
-		int serice = list.size();
-		RegularTimePeriod prd = null;
-		for (int i = serice - 1; i >= 0; i--) { // 時間の降順で取得してくる
-			cs = list.get(i);
-			// DBに重複データができてしまっている可能性がある
-			prd = getRegularTimePeriod(cs.getDate());
-			int index = candle.indexOf(prd);
-//			System.out.println("index:" + index);
-			if (index >= 0) {
-				candle.remove(prd);
+		try{
+			CandleStickDao csDao = new CandleStickDao();
+			List<CandleStick> list = csDao.getRecentList(period);
+			int serice = list.size();
+			RegularTimePeriod prd = null;
+			for (int i = serice - 1; i >= 0; i--) { // 時間の降順で取得してくる
+				cs = list.get(i);
+				// DBに重複データができてしまっている可能性がある
+				prd = getRegularTimePeriod(cs.getDate());
+				int index = candle.indexOf(prd);
+	//			System.out.println("index:" + index);
+				if (index >= 0) {
+					candle.remove(prd);
+				}
+				candle.add(prd, cs.getBid_open(), cs.getBid_high(),
+						cs.getBid_low(), cs.getBid_close());
 			}
-			candle.add(prd, cs.getBid_open(), cs.getBid_high(),
-					cs.getBid_low(), cs.getBid_close());
+	/*		for (int i = 0; i < candle.getItemCount(); i++) {
+				System.out.println(i);
+				// maに適当なデータを追加
+				ma.addOrUpdate(candle.getPeriod(i), 100);
+			}
+	*/
+		}catch (Exception e) {
+			// TODO: handle exception
+			JOptionPane.showMessageDialog(null, e.getMessage(), "Error: DBの読み込みに失敗(loadCandleStick)", JOptionPane.INFORMATION_MESSAGE);
 		}
-/*		for (int i = 0; i < candle.getItemCount(); i++) {
-			System.out.println(i);
-			// maに適当なデータを追加
-			ma.addOrUpdate(candle.getPeriod(i), 100);
-		}
-*/	}
+	}
 
 	@SuppressWarnings("unchecked")
 	private void updateCandleStick() {
@@ -252,14 +266,14 @@ public class FXChart {
 		layout.marginWidth = 4;
 		shell.setLayout(layout);
 		shell.setText("リアルタイム為替チャート");
-		
+
 		Composite toolbar = new Composite(shell, SWT.NONE);
 		GridLayout lo_toolbar = new GridLayout();
 		lo_toolbar.numColumns = 2;
 		toolbar.setLayout(lo_toolbar);
 		GridData ld_toolbar = new GridData(GridData.FILL_HORIZONTAL);
 		toolbar.setLayoutData(ld_toolbar);
-		
+
 		FXChart fxchart = new FXChart(CandleStick.M5, CandleStick.USDJPY, 60);
 		JFreeChart chart = fxchart.createChart();
 
@@ -301,7 +315,7 @@ public class FXChart {
 		chartComposite.setVerticalAxisTrace(false);
 		GridData ld_chart = new GridData(GridData.FILL_BOTH);
 		chartComposite.setLayoutData(ld_chart);
-		
+
 		shell.open();
 
 		Timer timer = fxchart.new DataGenerator(1000);
@@ -311,7 +325,7 @@ public class FXChart {
 			if (!display.readAndDispatch())
 				display.sleep();
 		}
-		
+
 		timer.stop();
 		display.dispose();
 	}
