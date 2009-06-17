@@ -44,8 +44,8 @@ public class FXChartUtils {
 			int currency_pair, int period) {
 		CandleStick cs = new CandleStick();
 		CandleStickDao csDao = new CandleStickDao();
-		List<CandleStick> list = csDao.getRecentList(period);
-		// List<CandleStick> list = csDao.getRecentList(period, currency_pair);
+		// List<CandleStick> list = csDao.getRecentList(period);
+		List<CandleStick> list = csDao.getRecentList(period, currency_pair);
 		int serice = list.size();
 		RegularTimePeriod prd = null;
 		for (int i = serice - 1; i >= 0; i--) { // 時間の降順で取得してくる
