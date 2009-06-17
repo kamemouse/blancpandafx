@@ -36,6 +36,7 @@ public class Minute5 extends RegularTimePeriod implements Serializable {
 
 	private long calcStart(Calendar cal) {
 		long start;
+		cal.setTime(date);
 		if (0 <= cal.get(Calendar.MINUTE) && cal.get(Calendar.MINUTE) <= 4) {
 			cal = getStartDate(cal, 0);
 		} else if (5 <= cal.get(Calendar.MINUTE)
@@ -77,6 +78,7 @@ public class Minute5 extends RegularTimePeriod implements Serializable {
 
 	private long calcEnd(Calendar cal) {
 		long end;
+		cal.setTime(date);
 		if (0 <= cal.get(Calendar.MINUTE) && cal.get(Calendar.MINUTE) <= 4) {
 			cal = getEndDate(cal, 4);
 		} else if (5 <= cal.get(Calendar.MINUTE)
@@ -155,12 +157,11 @@ public class Minute5 extends RegularTimePeriod implements Serializable {
 	@Override
 	public long getSerialIndex() {
         long hourIndex = this.day.getSerialIndex() * 24L + this.hour;
-        return hourIndex * 60L + this.minute;
+        return hourIndex * (long)(60 / 5) + (long)(this.minute / 5);
 	}
 
 	@Override
 	public RegularTimePeriod next() {
-		Calendar cal = Calendar.getInstance();
 		cal.setTime(date);
 		cal.add(Calendar.MINUTE, 5);
 		return new Minute5(cal.getTime());
@@ -174,12 +175,11 @@ public class Minute5 extends RegularTimePeriod implements Serializable {
 
 	@Override
 	public RegularTimePeriod previous() {
-		Calendar cal = Calendar.getInstance();
 		cal.setTime(date);
 		cal.add(Calendar.MINUTE, -5);
 		return new Minute5(cal.getTime());
 	}
-
+	
 	public int compareTo(Object obj) {
 		int result;
 

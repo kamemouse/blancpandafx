@@ -36,6 +36,7 @@ public class Minute30 extends RegularTimePeriod implements Serializable {
 
 	private long calcStart(Calendar cal) {
 		long start;
+		cal.setTime(date);
 		if (0 <= cal.get(Calendar.MINUTE) && cal.get(Calendar.MINUTE) <= 29) {
 			cal = getStartDate(cal, 0);
 		} else {
@@ -47,6 +48,7 @@ public class Minute30 extends RegularTimePeriod implements Serializable {
 
 	private long calcEnd(Calendar cal) {
 		long end;
+		cal.setTime(date);
 		if (0 <= cal.get(Calendar.MINUTE) && cal.get(Calendar.MINUTE) <= 29) {
 			cal = getEndDate(cal, 29);
 		} else {
@@ -95,12 +97,11 @@ public class Minute30 extends RegularTimePeriod implements Serializable {
 	@Override
 	public long getSerialIndex() {
         long hourIndex = this.day.getSerialIndex() * 24L + this.hour;
-        return hourIndex * 60L + this.minute;
+        return hourIndex * (long)(60 / 30) + (long)(this.minute / 30);
 	}
 
 	@Override
 	public RegularTimePeriod next() {
-		Calendar cal = Calendar.getInstance();
 		cal.setTime(date);
 		cal.add(Calendar.MINUTE, 30);
 		return new Minute30(cal.getTime());
@@ -114,7 +115,6 @@ public class Minute30 extends RegularTimePeriod implements Serializable {
 
 	@Override
 	public RegularTimePeriod previous() {
-		Calendar cal = Calendar.getInstance();
 		cal.setTime(date);
 		cal.add(Calendar.MINUTE, -30);
 		return new Minute30(cal.getTime());

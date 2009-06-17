@@ -34,6 +34,7 @@ public class Hour2 extends RegularTimePeriod implements Serializable {
 
 	private long calcStart(Calendar cal) {
 		long start;
+		cal.setTime(date);
 		if (0 <= cal.get(Calendar.HOUR_OF_DAY) && cal.get(Calendar.HOUR_OF_DAY) <= 1) {
 			cal = getStartDate(cal, 0);
 		} else if (2 <= cal.get(Calendar.HOUR_OF_DAY) && cal.get(Calendar.HOUR_OF_DAY) <= 3) {
@@ -65,6 +66,7 @@ public class Hour2 extends RegularTimePeriod implements Serializable {
 
 	private long calcEnd(Calendar cal) {
 		long end;
+		cal.setTime(date);
 		if (0 <= cal.get(Calendar.HOUR_OF_DAY) && cal.get(Calendar.HOUR_OF_DAY) <= 1) {
 			cal = getEndDate(cal, 1);
 		} else if (2 <= cal.get(Calendar.HOUR_OF_DAY) && cal.get(Calendar.HOUR_OF_DAY) <= 3) {
@@ -134,13 +136,12 @@ public class Hour2 extends RegularTimePeriod implements Serializable {
 
 	@Override
 	public long getSerialIndex() {
-        long hourIndex = this.day.getSerialIndex() * 24L + this.hour;
+        long hourIndex = this.day.getSerialIndex() * (long)(24 / 2) + (long)(this.hour / 2);
         return hourIndex;
 	}
 
 	@Override
 	public RegularTimePeriod next() {
-		Calendar cal = Calendar.getInstance();
 		cal.setTime(date);
 		cal.add(Calendar.MINUTE, 30);
 		return new Hour2(cal.getTime());
@@ -154,7 +155,6 @@ public class Hour2 extends RegularTimePeriod implements Serializable {
 
 	@Override
 	public RegularTimePeriod previous() {
-		Calendar cal = Calendar.getInstance();
 		cal.setTime(date);
 		cal.add(Calendar.MINUTE, -30);
 		return new Hour2(cal.getTime());
