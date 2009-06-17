@@ -227,7 +227,7 @@ public class FXChart {
 			}
 	*/
 		}catch (Exception e) {
-			// TODO: handle exception
+			// エラーメッセージを表示（暫定）
 			JOptionPane.showMessageDialog(null, e.getMessage(), "Error: DBの読み込みに失敗(loadCandleStick)", JOptionPane.INFORMATION_MESSAGE);
 		}
 	}
