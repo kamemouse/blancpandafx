@@ -147,6 +147,10 @@ public class FXChartUtils {
 		return cr;
 	}
 
+	/**
+	 * 折れ線グラフのRendererを返す
+	 * @return XYLineAndShapeRenderer
+	 */
 	public static XYLineAndShapeRenderer getSimpleMovingAverateRenderer() {
 		XYLineAndShapeRenderer xyr = new XYLineAndShapeRenderer();
 		xyr.setSeriesLinesVisible(SMA_CLOSE, false); // closeRateを非表示にする
